@@ -11,10 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('internships_applications', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+        Schema::create('internship_applications', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('school_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('position_id')->constrained('internship_positions')->cascadeOnDelete();
+        $table->enum('status', [
+            'submitted',
+            'approved_school',
+            'rejected_school',
+            'approved_company',
+            'rejected_company',
+            'active',
+            'finished'
+        ])->default('submitted');
+        $table->timestamp('applied_at')->nullable();
+        $table->timestamps();
+    });
+
     }
 
     /**

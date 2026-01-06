@@ -11,10 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('internships_assignments', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+       Schema::create('internship_assignments', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('school_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('supervisor_teacher_id')->nullable()->constrained('teachers')->nullOnDelete();
+        $table->date('start_date');
+        $table->date('end_date');
+        $table->enum('status', ['active', 'completed', 'cancelled'])->default('active');
+        $table->timestamps();
+    });
+
     }
 
     /**

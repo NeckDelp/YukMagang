@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -18,9 +20,14 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'school_id',
+        'role',
         'name',
         'email',
         'password',
+        'phone',
+        'photo',
+        'is_active',
     ];
 
     /**
@@ -43,6 +50,31 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Get the school that owns the user.
+     */
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    /**
+     * Get the student profile for the user.
+     */
+    public function student(): HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    /**
+     * Get the teacher profile for the user.
+     */
+    public function teacher(): HasOne
+    {
+        return $this->hasOne(Teacher::class);
     }
 }

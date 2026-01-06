@@ -11,14 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('students', function (Blueprint $table) {
+       Schema::create('daily_reports', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-        $table->foreignId('school_id')->constrained()->cascadeOnDelete();
-        $table->string('nis');
-        $table->string('class');
-        $table->string('major');
-        $table->year('year');
+        $table->foreignId('assignment_id')->constrained('internship_assignments')->cascadeOnDelete();
+        $table->date('date');
+        $table->text('activity');
+        $table->string('file')->nullable();
+        $table->enum('status', ['pending', 'approved', 'revision'])->default('pending');
         $table->timestamps();
     });
 
@@ -29,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('students');
+        Schema::dropIfExists('daily_reports');
     }
 };
