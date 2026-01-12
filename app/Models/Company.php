@@ -42,6 +42,14 @@ class Company extends Model
     }
 
     /**
+     * Get the users (company admins) for the company.
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    /**
      * Get the internship positions for the company.
      */
     public function internshipPositions(): HasMany

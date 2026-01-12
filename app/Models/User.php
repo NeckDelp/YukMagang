@@ -2,17 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +20,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'school_id',
+        'company_id',  // ←
         'role',
         'name',
         'email',
@@ -63,6 +63,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the company that owns the user.
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /**
      * Get the student profile for the user.
      */
     public function student(): HasOne
@@ -76,5 +84,29 @@ class User extends Authenticatable
     public function teacher(): HasOne
     {
         return $this->hasOne(Teacher::class);
+    }
+
+    /**
+     * Check if user is a company user
+     */
+    public function isCompany(): bool
+    {
+        return $this->role === 'company' && $this->company_id !== null;
+    }
+
+    /**
+     * Check if user is a school user (admin/teacher/student)
+     */
+    public function isSchoolUser(): bool
+    {
+        return in_array($this->role, ['school_admin', 'teacher', 'student']) && $this->school_id !== null;
+    }
+
+    /**
+     * Check if user is super admin
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
     }
 }
