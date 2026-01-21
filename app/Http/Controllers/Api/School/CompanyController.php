@@ -3,209 +3,185 @@
 namespace App\Http\Controllers\Api\School;
 
 use App\Http\Controllers\Controller;
-use App\Models\Teacher;
-use App\Models\User;
+use App\Models\Company;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
-class TeacherController extends Controller
+class CompanyController extends Controller
 {
     /**
-     * Display a listing of teachers
+     * Display a listing of companies
      */
     public function index(Request $request)
     {
-        $schoolId = $request->user()->school_id;
-
-        $teachers = Teacher::with(['user', 'school'])
-            ->where('school_id', $schoolId)
+        $companies = Company::query()
             ->when($request->search, function ($query, $search) {
-                $query->whereHas('user', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
-                })->orWhere('nip', 'like', "%{$search}%");
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('industry', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             })
-            ->when($request->position, fn($q, $position) => $q->where('position', $position))
-            ->withCount('supervisedAssignments')
+            ->when($request->industry, fn($q, $industry) => $q->where('industry', $industry))
+            ->when($request->status, fn($q, $status) => $q->where('status', $status))
+            ->withCount(['internshipPositions', 'internshipAssignments'])
             ->latest()
             ->paginate($request->per_page ?? 15);
 
         return response()->json([
             'success' => true,
-            'data' => $teachers
+            'data' => $companies
         ]);
     }
 
     /**
-     * Store a newly created teacher
+     * Store a newly created company
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
+            'industry' => 'required|string|max:255',
+            'address' => 'required|string',
+            'description' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
-            'nip' => 'required|string|unique:teachers,nip',
-            'position' => 'required|string|max:255',
+            'website' => 'nullable|url|max:255',
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'status' => 'sometimes|in:active,inactive',
         ]);
 
-        $schoolId = $request->user()->school_id;
-
-        DB::beginTransaction();
-        try {
-            // Create user first
-            $user = User::create([
-                'school_id' => $schoolId,
-                'role' => 'teacher',
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'phone' => $validated['phone'] ?? null,
-                'is_active' => true,
-            ]);
-
-            // Create teacher profile
-            $teacher = Teacher::create([
-                'user_id' => $user->id,
-                'school_id' => $schoolId,
-                'nip' => $validated['nip'],
-                'position' => $validated['position'],
-            ]);
-
-            DB::commit();
-
-            $teacher->load(['user', 'school']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Teacher created successfully',
-                'data' => $teacher
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create teacher: ' . $e->getMessage()
-            ], 500);
+        $logoPath = null;
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('companies/logos', 'public');
         }
+
+        $company = Company::create([
+            'name' => $validated['name'],
+            'industry' => $validated['industry'],
+            'address' => $validated['address'],
+            'description' => $validated['description'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'website' => $validated['website'] ?? null,
+            'logo' => $logoPath,
+            'status' => $validated['status'] ?? 'active',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Company created successfully',
+            'data' => $company
+        ], 201);
     }
 
     /**
-     * Display the specified teacher
+     * Display the specified company
      */
-    public function show(Request $request, $id)
+    public function show($id)
     {
-        $schoolId = $request->user()->school_id;
-
-        $teacher = Teacher::with([
-            'user',
-            'school',
-            'supervisedAssignments.student.user',
-            'supervisedAssignments.company'
+        $company = Company::with([
+            'internshipPositions' => fn($q) => $q->where('status', 'open'),
+            'internshipAssignments.student.user'
         ])
-            ->where('school_id', $schoolId)
+            ->withCount([
+                'internshipPositions',
+                'internshipAssignments',
+                'internshipApplications'
+            ])
             ->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'data' => $teacher
+            'data' => $company
         ]);
     }
 
     /**
-     * Update the specified teacher
+     * Update the specified company
      */
     public function update(Request $request, $id)
     {
-        $schoolId = $request->user()->school_id;
-
-        $teacher = Teacher::where('school_id', $schoolId)->findOrFail($id);
+        $company = Company::findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $teacher->user_id,
+            'industry' => 'sometimes|string|max:255',
+            'address' => 'sometimes|string',
+            'description' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
-            'nip' => 'sometimes|string|unique:teachers,nip,' . $teacher->id,
-            'position' => 'sometimes|string|max:255',
-            'is_active' => 'sometimes|boolean',
+            'website' => 'nullable|url|max:255',
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'status' => 'sometimes|in:active,inactive',
         ]);
 
-        DB::beginTransaction();
-        try {
-            // Update user data
-            if (isset($validated['name']) || isset($validated['email']) || isset($validated['phone']) || isset($validated['is_active'])) {
-                $teacher->user->update([
-                    'name' => $validated['name'] ?? $teacher->user->name,
-                    'email' => $validated['email'] ?? $teacher->user->email,
-                    'phone' => $validated['phone'] ?? $teacher->user->phone,
-                    'is_active' => $validated['is_active'] ?? $teacher->user->is_active,
-                ]);
+        if ($request->hasFile('logo')) {
+            // Delete old logo
+            if ($company->logo) {
+                Storage::disk('public')->delete($company->logo);
             }
-
-            // Update teacher profile
-            $teacher->update([
-                'nip' => $validated['nip'] ?? $teacher->nip,
-                'position' => $validated['position'] ?? $teacher->position,
-            ]);
-
-            DB::commit();
-
-            $teacher->load(['user', 'school']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Teacher updated successfully',
-                'data' => $teacher
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update teacher: ' . $e->getMessage()
-            ], 500);
+            $validated['logo'] = $request->file('logo')->store('companies/logos', 'public');
         }
+
+        $company->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Company updated successfully',
+            'data' => $company
+        ]);
     }
 
     /**
-     * Remove the specified teacher
+     * Remove the specified company
      */
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
-        $schoolId = $request->user()->school_id;
+        $company = Company::findOrFail($id);
 
-        $teacher = Teacher::where('school_id', $schoolId)->findOrFail($id);
-
-        // Check if teacher has active supervised assignments
-        $hasActiveAssignments = $teacher->supervisedAssignments()
+        // Check if company has active assignments
+        $hasActiveAssignments = $company->internshipAssignments()
             ->where('status', 'active')->exists();
 
         if ($hasActiveAssignments) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete teacher with active supervised assignments'
+                'message' => 'Cannot delete company with active internship assignments'
             ], 422);
         }
 
-        DB::beginTransaction();
-        try {
-            $user = $teacher->user;
-            $teacher->delete();
-            $user->delete();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Teacher deleted successfully'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete teacher: ' . $e->getMessage()
-            ], 500);
+        // Delete logo
+        if ($company->logo) {
+            Storage::disk('public')->delete($company->logo);
         }
+
+        $company->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Company deleted successfully'
+        ]);
+    }
+
+    /**
+     * Browse companies (for students)
+     */
+    public function browse(Request $request)
+    {
+        $companies = Company::where('status', 'active')
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('industry', 'like', "%{$search}%");
+            })
+            ->when($request->industry, fn($q, $industry) => $q->where('industry', $industry))
+            ->withCount([
+                'internshipPositions' => fn($q) => $q->where('status', 'open')
+            ])
+            ->latest()
+            ->paginate($request->per_page ?? 12);
+
+        return response()->json([
+            'success' => true,
+            'data' => $companies
+        ]);
     }
 }
