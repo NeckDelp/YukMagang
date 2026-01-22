@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Student\InternshipApplicationController;
 use App\Http\Controllers\Api\Student\AssignmentController as StudentAssignmentController;
 use App\Http\Controllers\Api\Company\InternshipPositionController;
 use App\Http\Controllers\Api\Company\ApplicationController as CompanyApplicationController;
+use App\Http\Controllers\Api\Teacher\SupervisionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -118,5 +119,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Current Interns
         Route::get('interns', [CompanyApplicationController::class, 'currentInterns']);
+    });
+
+    // ========================================
+    // TEACHER SPECIFIC ROUTES (Additional)
+    // ========================================
+    Route::middleware(['role:teacher', 'ensure.school.scope'])->prefix('teacher')->group(function () {
+
+        // Dashboard
+        Route::get('dashboard', [SupervisionController::class, 'dashboard']);
+
+        // My supervised assignments
+        Route::get('my-assignments', [SupervisionController::class, 'myAssignments']);
+
+        // Grouped views
+        Route::get('assignments/grouped-by-company', [SupervisionController::class, 'groupedByCompany']);
+        Route::get('assignments/grouped-by-major', [SupervisionController::class, 'groupedByMajor']);
+
+        // Company-specific students
+        Route::get('companies/{company_id}/students', [SupervisionController::class, 'companyStudents']);
+
+        // Bulk operations
+        Route::post('daily-reports/bulk-approve', [SupervisionController::class, 'bulkApproveDailyReports']);
     });
 });
