@@ -36,17 +36,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     });
 
-    // ========================================
-    // SUPER ADMIN ROUTES
-    // ========================================
     Route::middleware('role:super_admin')->prefix('super-admin')->group(function () {
         Route::get('statistics', [SuperAdminSchoolController::class, 'statistics']);
         Route::apiResource('schools', SuperAdminSchoolController::class);
     });
 
-    // ========================================
-    // SCHOOL ADMIN & TEACHER ROUTES
-    // ========================================
     Route::middleware(['role:school_admin,teacher', 'ensure.school.scope'])->prefix('school')->group(function () {
 
         // Dashboard
@@ -61,16 +55,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Companies Management
         Route::apiResource('companies', CompanyController::class);
 
-        // Internship Assignments
         Route::get('assignments/statistics', [InternshipAssignmentController::class, 'statistics']);
         Route::apiResource('assignments', InternshipAssignmentController::class);
 
-        // Daily Reports (for viewing/approving by teacher)
         Route::get('daily-reports', [DailyReportController::class, 'indexForSchool']);
         Route::patch('daily-reports/{id}/approve', [DailyReportController::class, 'approve']);
         Route::patch('daily-reports/{id}/reject', [DailyReportController::class, 'reject']);
-
-        // Internship Applications (for viewing by school)
         Route::get('applications', [InternshipApplicationController::class, 'indexForSchool']);
     });
 
@@ -98,9 +88,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('positions/{id}', [InternshipPositionController::class, 'show']);
     });
 
-    // ========================================
-    // COMPANY ROUTES
-    // ========================================
     Route::middleware('role:company')->prefix('company')->group(function () {
 
         // Company Profile
