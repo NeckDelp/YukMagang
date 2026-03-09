@@ -24,6 +24,8 @@ use App\Http\Controllers\Api\Company\ApplicationController as CompanyApplication
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']); // For initial setup only
+    Route::post('/register-school', [AuthController::class, 'registerSchool']);
+    Route::post('/register-school-admin', [AuthController::class, 'registerSchoolAdmin']);
 });
 
 // Protected routes
@@ -64,9 +66,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('applications', [InternshipApplicationController::class, 'indexForSchool']);
     });
 
-    // ========================================
-    // STUDENT ROUTES
-    // ========================================
     Route::middleware('role:student')->prefix('student')->group(function () {
 
         // My Assignment
