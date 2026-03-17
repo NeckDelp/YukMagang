@@ -46,9 +46,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     });
 
-    // ========================================
-    // SCHOOL ADMIN & TEACHER ROUTES
-    // ========================================
+    Route::middleware('role:super_admin')->prefix('super-admin')->group(function () {
+        Route::get('statistics', [SuperAdminSchoolController::class, 'statistics']);
+        Route::apiResource('schools', SuperAdminSchoolController::class);
+    });
+
     Route::middleware(['role:school_admin,teacher', 'ensure.school.scope'])->prefix('school')->group(function () {
 
         // Dashboard
@@ -63,24 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Companies Management
         Route::apiResource('companies', CompanyController::class);
 
-        // Company Partnership (School Admin only)
-        Route::middleware('role:school_admin')->group(function () {
-            Route::get('available-companies', [CompanyPartnershipController::class, 'available']);
-            Route::post('companies/{id}/partner', [CompanyPartnershipController::class, 'partner']);
-            Route::delete('companies/{id}/unpartner', [CompanyPartnershipController::class, 'unpartner']);
-            Route::get('partnered-companies', [CompanyPartnershipController::class, 'partnered']);
-        });
-
-        // Internship Assignments
         Route::get('assignments/statistics', [InternshipAssignmentController::class, 'statistics']);
         Route::apiResource('assignments', InternshipAssignmentController::class);
 
-        // Daily Reports (for viewing/approving by teacher)
         Route::get('daily-reports', [DailyReportController::class, 'indexForSchool']);
         Route::patch('daily-reports/{id}/approve', [DailyReportController::class, 'approve']);
         Route::patch('daily-reports/{id}/reject', [DailyReportController::class, 'reject']);
-
-        // Internship Applications (for viewing by school)
         Route::get('applications', [InternshipApplicationController::class, 'indexForSchool']);
 
         // Teacher - Attendance Verification
@@ -98,9 +88,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // ========================================
-    // STUDENT ROUTES
-    // ========================================
     Route::middleware('role:student')->prefix('student')->group(function () {
 
         // Dashboard
@@ -141,9 +128,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('job-vacancies/{id}', [JobVacancyController::class, 'show']);
     });
 
-    // ========================================
-    // COMPANY ROUTES
-    // ========================================
     Route::middleware('role:company')->prefix('company')->group(function () {
 
         // Company Profile
