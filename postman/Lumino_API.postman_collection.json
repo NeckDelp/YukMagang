@@ -372,10 +372,26 @@
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/school/students?per_page=15",
+									"raw": "{{base_url}}/school/students?search=&class=&major=&year=&per_page=15",
 									"host": ["{{base_url}}"],
 									"path": ["school", "students"],
 									"query": [
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "class",
+											"value": ""
+										},
+										{
+											"key": "major",
+											"value": ""
+										},
+										{
+											"key": "year",
+											"value": ""
+										},
 										{
 											"key": "per_page",
 											"value": "15"
@@ -386,6 +402,21 @@
 						},
 						{
 							"name": "Create Student",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if ([200, 201].includes(pm.response.code)) {",
+											"  const res = pm.response.json();",
+											"  const id = res?.data?.id ?? res?.data?.data?.id;",
+											"  if (id) pm.environment.set('student_id', String(id));",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [
@@ -404,7 +435,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"user_id\": 1,\n    \"student_id\": \"STU001\",\n    \"major\": \"Teknik Informatika\",\n    \"class\": \"XII IPA 1\",\n    \"year\": 2024\n}"
+									"raw": "{\n    \"name\": \"Siti Aisyah\",\n    \"email\": \"siti.student@example.com\",\n    \"password\": \"password123\",\n    \"phone\": \"081234567890\",\n    \"nis\": \"{{student_nis}}\",\n    \"class\": \"{{student_class}}\",\n    \"major\": \"{{student_major}}\",\n    \"year\": {{student_year}}\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/school/students",
@@ -434,7 +465,7 @@
 									"variable": [
 										{
 											"key": "id",
-											"value": "1"
+											"value": "{{student_id}}"
 										}
 									]
 								}
@@ -460,7 +491,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"major\": \"Teknik Informatika Updated\",\n    \"class\": \"XII IPA 2\",\n    \"year\": 2024\n}"
+									"raw": "{\n    \"major\": \"{{student_major}}\",\n    \"class\": \"{{student_class}}\",\n    \"year\": {{student_year}}\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/school/students/:id",
@@ -469,7 +500,7 @@
 									"variable": [
 										{
 											"key": "id",
-											"value": "1"
+											"value": "{{student_id}}"
 										}
 									]
 								}
@@ -496,7 +527,7 @@
 									"variable": [
 										{
 											"key": "id",
-											"value": "1"
+											"value": "{{student_id}}"
 										}
 									]
 								}
@@ -522,14 +553,43 @@
 									}
 								],
 								"url": {
-									"raw": "{{base_url}}/school/teachers",
+									"raw": "{{base_url}}/school/teachers?search=&position=&per_page=15",
 									"host": ["{{base_url}}"],
-									"path": ["school", "teachers"]
+									"path": ["school", "teachers"],
+									"query": [
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "position",
+											"value": ""
+										},
+										{
+											"key": "per_page",
+											"value": "15"
+										}
+									]
 								}
 							}
 						},
 						{
 							"name": "Create Teacher",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if ([200, 201].includes(pm.response.code)) {",
+											"  const res = pm.response.json();",
+											"  const id = res?.data?.id ?? res?.data?.data?.id;",
+											"  if (id) pm.environment.set('teacher_id', String(id));",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [
@@ -548,7 +608,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"user_id\": 2,\n    \"teacher_id\": \"TCH001\",\n    \"subject\": \"Matematika\"\n}"
+									"raw": "{\n    \"name\": \"Budi Santoso\",\n    \"email\": \"budi.teacher@example.com\",\n    \"password\": \"password123\",\n    \"phone\": \"081234567890\",\n    \"nip\": \"1987010120260001\",\n    \"position\": \"{{teacher_position}}\",\n    \"expertise_majors\": [\"{{teacher_expertise_major}}\"]\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/school/teachers",
@@ -578,7 +638,7 @@
 									"variable": [
 										{
 											"key": "id",
-											"value": "1"
+											"value": "{{teacher_id}}"
 										}
 									]
 								}
@@ -604,7 +664,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"subject\": \"Fisika\"\n}"
+									"raw": "{\n    \"position\": \"{{teacher_position}}\",\n    \"expertise_majors\": [\"{{teacher_expertise_major}}\"]\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/school/teachers/:id",
@@ -613,7 +673,7 @@
 									"variable": [
 										{
 											"key": "id",
-											"value": "1"
+											"value": "{{teacher_id}}"
 										}
 									]
 								}
@@ -640,7 +700,7 @@
 									"variable": [
 										{
 											"key": "id",
-											"value": "1"
+											"value": "{{teacher_id}}"
 										}
 									]
 								}

@@ -23,6 +23,11 @@ class Teacher extends Model
         'school_id',
         'nip',
         'position',
+        'expertise_majors',
+    ];
+
+    protected $casts = [
+        'expertise_majors' => 'array',
     ];
 
     /**

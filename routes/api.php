@@ -46,10 +46,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     });
 
-    Route::middleware('role:super_admin')->prefix('super-admin')->group(function () {
-        Route::get('statistics', [SuperAdminSchoolController::class, 'statistics']);
-        Route::apiResource('schools', SuperAdminSchoolController::class);
-    });
+    // Route::middleware('role:super_admin')->prefix('super-admin')->group(function () {
+    //     Route::get('statistics', [SuperAdminSchoolController::class, 'statistics']);
+    //     Route::apiResource('schools', SuperAdminSchoolController::class);
+    // });
 
     Route::middleware(['role:school_admin,teacher', 'ensure.school.scope'])->prefix('school')->group(function () {
 

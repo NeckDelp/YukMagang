@@ -49,6 +49,8 @@ class TeacherController extends Controller
             'phone' => 'nullable|string|max:255',
             'nip' => 'required|string|unique:teachers,nip',
             'position' => 'required|string|max:255',
+            'expertise_majors' => 'nullable|array',
+            'expertise_majors.*' => 'string|max:255',
         ]);
 
         $schoolId = $request->user()->school_id;
@@ -72,6 +74,7 @@ class TeacherController extends Controller
                 'school_id' => $schoolId,
                 'nip' => $validated['nip'],
                 'position' => $validated['position'],
+                'expertise_majors' => $validated['expertise_majors'] ?? null,
             ]);
 
             DB::commit();
@@ -129,6 +132,8 @@ class TeacherController extends Controller
             'phone' => 'nullable|string|max:255',
             'nip' => 'sometimes|string|unique:teachers,nip,' . $teacher->id,
             'position' => 'sometimes|string|max:255',
+            'expertise_majors' => 'sometimes|nullable|array',
+            'expertise_majors.*' => 'string|max:255',
             'is_active' => 'sometimes|boolean',
         ]);
 
@@ -148,6 +153,9 @@ class TeacherController extends Controller
             $teacher->update([
                 'nip' => $validated['nip'] ?? $teacher->nip,
                 'position' => $validated['position'] ?? $teacher->position,
+                'expertise_majors' => array_key_exists('expertise_majors', $validated)
+                    ? $validated['expertise_majors']
+                    : $teacher->expertise_majors,
             ]);
 
             DB::commit();

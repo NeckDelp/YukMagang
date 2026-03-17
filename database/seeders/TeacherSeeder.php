@@ -22,8 +22,7 @@ class TeacherSeeder extends Seeder
             'Kepala Program Studi',
             'Guru Produktif',
         ];
-
-        $subjects = [
+        $expertiseMajors = [
             'Matematika',
             'Fisika',
             'Kimia',
@@ -48,7 +47,8 @@ class TeacherSeeder extends Seeder
                         'user_id' => $teacher->id,
                         'school_id' => $school->id,
                         'nip' => $school->npsn . str_pad($teacher->id, 6, '0', STR_PAD_LEFT),
-                        'position' => $positions[$index % count($positions)] . ' - ' . $subjects[$index % count($subjects)],
+                        'position' => $positions[$index % count($positions)] . ' - ' . $expertiseMajors[$index % count($expertiseMajors)],
+                        'expertise_majors' => [$expertiseMajors[$index % count($expertiseMajors)]],
                     ]
                 );
             }

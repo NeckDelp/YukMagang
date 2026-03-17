@@ -37,6 +37,7 @@ class InternshipAssignmentResource extends JsonResource
                 'nip' => $this->supervisorTeacher->nip,
                 'name' => $this->supervisorTeacher->user->name,
                 'position' => $this->supervisorTeacher->position,
+                'expertise_majors' => $this->supervisorTeacher->expertise_majors,
             ],
             'school' => [
                 'id' => $this->school->id,

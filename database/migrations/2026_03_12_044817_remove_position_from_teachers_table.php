@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('teachers', function (Blueprint $table) {
-            $table->dropColumn('position');
-        });
+        // Intentionally left as a no-op.
+        // The project currently requires `teachers.position` to exist.
     }
 
     /**
@@ -21,8 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('teachers', function (Blueprint $table) {
-            //
-        });
+        // No-op
     }
 };
