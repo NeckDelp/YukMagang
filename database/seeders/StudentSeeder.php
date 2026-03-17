@@ -16,15 +16,30 @@ class StudentSeeder extends Seeder
     {
         $schools = School::all();
         $majors = [
-            'Teknik Informatika',
-            'Teknik Komputer',
-            'Rekayasa Perangkat Lunak',
-            'Multimedia',
-            'Teknik Elektro',
+            'Teknik Komputer dan Jaringan',
+            'Teknik Instalasi Tenaga Listrik',
+            'Teknik Otomasi Industri',
+            'Desain Komunikasi Visual',
+            'Broadcasting dan Perfilman',
+            'Teknik Otomotif',
             'Teknik Mesin',
-            'Akuntansi',
-            'Administrasi Perkantoran',
+            'Teknik Pengelasan dan Fabrikasi Logam',
+            'Kimia Analisis',
+            'Akuntansi dan Keuangan Lembaga',
+            'Keperawatan',
+            'Rekayasa Perangkat Lunak',
+            'Teknik Kendaraan Ringan',
             'Pemasaran',
+            'Usaha Layanan Pariwisata',
+            'Manager Perkantoran dan Layanan Bisnis',
+            'Desain Pemodelan dan Informasi Bangunan',
+            'Teknik Audio Video',
+            'Teknik Sepeda Motor',
+            'Teknik Alat Berat',
+            'Perhotelan',
+            'Kuliner',
+            'Tata Busana',
+            'Tata Kecantikan Kulit dan Rambut',
         ];
 
         $classes = ['X', 'XI', 'XII'];

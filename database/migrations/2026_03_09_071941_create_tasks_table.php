@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('internship_positions', function (Blueprint $table) {
+        Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('created_by')->constrained('teachers')->onDelete('cascade'); // Pembimbing yang buat
+            $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->string('title');
             $table->text('description');
-            $table->integer('quota');
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->enum('status', ['open', 'closed'])->default('open');
+            $table->text('expected_output')->nullable();
+            $table->date('deadline');
+            $table->enum('status', ['active', 'archived'])->default('active');
             $table->timestamps();
         });
     }
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('internships_positions');
+        Schema::dropIfExists('tasks');
     }
 };

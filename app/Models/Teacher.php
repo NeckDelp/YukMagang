@@ -48,5 +48,26 @@ class Teacher extends Model
     {
         return $this->hasMany(InternshipAssignment::class, 'supervisor_teacher_id');
     }
+
+    /**
+     * Get supervised companies (via pivot)
+     */
+    public function supervisedCompanies()
+    {
+        return $this->belongsToMany(
+            Company::class,
+            'teacher_company_supervisions',
+            'teacher_id',
+            'company_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Get supervisions
+     */
+    public function companySupervisions()
+    {
+        return $this->hasMany(TeacherCompanySupervision::class);
+    }
 }
 

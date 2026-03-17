@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('companies', function (Blueprint $table) {
+        Schema::create('company_supervisors', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->string('name');
-            $table->string('industry')->nullable();
-            $table->text('address')->nullable();
-            $table->text('description')->nullable();
-            $table->string('email')->nullable();
+            $table->string('position'); // Jabatan di perusahaan
             $table->string('phone')->nullable();
-            $table->string('website')->nullable();
-            $table->string('logo')->nullable();
-            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
     }
@@ -31,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('companies');
+        Schema::dropIfExists('company_supervisors');
     }
 };
