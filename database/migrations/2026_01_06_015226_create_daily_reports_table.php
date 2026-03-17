@@ -21,6 +21,11 @@ return new class extends Migration
         $table->timestamps();
     });
 
+    Schema::table('daily_reports', function (Blueprint $table) {
+        // Tambah field untuk export PDF
+        $table->string('exported_pdf')->nullable()->after('status');
+        $table->boolean('is_exported')->default(false)->after('exported_pdf');
+    });
     }
 
     /**

@@ -22,6 +22,9 @@ class InternshipPosition extends Model
         'company_id',
         'title',
         'description',
+        'requirements',      // Kolom baru
+        'responsibilities',  // Kolom baru
+        'benefits',          // Kolom baru
         'quota',
         'start_date',
         'end_date',
@@ -57,5 +60,25 @@ class InternshipPosition extends Model
     public function internshipApplications(): HasMany
     {
         return $this->hasMany(InternshipApplication::class, 'position_id');
+    }
+
+    /**
+     * Get remaining quota
+     */
+    public function getRemainingQuotaAttribute()
+    {
+        $acceptedCount = $this->internshipApplications()
+            ->where('status', 'approved_company')
+            ->count();
+
+        return $this->quota - $acceptedCount;
+    }
+
+    /**
+     * Check if position is full
+     */
+    public function getIsFullAttribute()
+    {
+        return $this->remaining_quota <= 0;
     }
 }

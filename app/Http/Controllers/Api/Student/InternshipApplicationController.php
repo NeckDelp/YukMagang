@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\InternshipApplication;
 use App\Models\InternshipPosition;
 use App\Models\InternshipAssignment;
+use App\Models\SchoolCompanyPartnership;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use App\Enums\ApplicationStatus;
 
 class InternshipApplicationController extends Controller
 {
@@ -50,10 +54,19 @@ class InternshipApplicationController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'company_id' => 'required|exists:companies,id',
+        $validator = Validator::make($request->all(), [
             'position_id' => 'required|exists:internship_positions,id',
+            'cv_file' => 'required|file|mimes:pdf,doc,docx|max:5120', // 5MB
+            'cover_letter' => 'nullable|string|max:2000',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         // Check if student already has active assignment
         $hasActiveAssignment = InternshipAssignment::where('student_id', $student->id)
@@ -67,13 +80,23 @@ class InternshipApplicationController extends Controller
             ], 422);
         }
 
-        // Check if position is still open
-        $position = InternshipPosition::where('id', $validated['position_id'])
-            ->where('company_id', $validated['company_id'])
-            ->where('status', 'open')
-            ->first();
+        $position = InternshipPosition::findOrFail($request->position_id);
 
-        if (!$position) {
+        // Verify position is from partnered company
+        $isPartnered = SchoolCompanyPartnership::where('school_id', $student->school_id)
+            ->where('company_id', $position->company_id)
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$isPartnered) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This position is not available for your school'
+            ], 403);
+        }
+
+        // Check if position is still open
+        if ($position->status !== 'open') {
             return response()->json([
                 'success' => false,
                 'message' => 'This position is no longer available'
@@ -82,8 +105,8 @@ class InternshipApplicationController extends Controller
 
         // Check if student already applied to this position
         $existingApplication = InternshipApplication::where('student_id', $student->id)
-            ->where('position_id', $validated['position_id'])
-            ->whereIn('status', ['submitted', 'approved_school', 'approved_company'])
+            ->where('position_id', $request->position_id)
+            ->whereIn('status', [ApplicationStatus::SUBMITTED, ApplicationStatus::APPROVED_SCHOOL, ApplicationStatus::APPROVED_COMPANY])
             ->exists();
 
         if ($existingApplication) {
@@ -94,8 +117,8 @@ class InternshipApplicationController extends Controller
         }
 
         // Check quota
-        $acceptedCount = InternshipApplication::where('position_id', $validated['position_id'])
-            ->where('status', 'approved_company')
+        $acceptedCount = InternshipApplication::where('position_id', $request->position_id)
+            ->where('status', ApplicationStatus::APPROVED_COMPANY)
             ->count();
 
         if ($acceptedCount >= $position->quota) {
@@ -108,9 +131,10 @@ class InternshipApplicationController extends Controller
         $application = InternshipApplication::create([
             'student_id' => $student->id,
             'school_id' => $student->school_id,
-            'company_id' => $validated['company_id'],
-            'position_id' => $validated['position_id'],
-            'status' => 'submitted',
+            'company_id' => $position->company_id,
+            'position_id' => $request->position_id,
+            'cover_letter' => $request->cover_letter,
+            'status' => ApplicationStatus::SUBMITTED,
             'applied_at' => now(),
         ]);
 
@@ -167,11 +191,16 @@ class InternshipApplicationController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        if ($application->status !== 'submitted') {
+        if ($application->status !== ApplicationStatus::SUBMITTED) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot cancel application that has been processed'
             ], 422);
+        }
+
+        // Delete CV file if exists
+        if ($application->cv_file) {
+            Storage::disk('public')->delete($application->cv_file);
         }
 
         $application->delete();

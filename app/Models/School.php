@@ -78,5 +78,29 @@ class School extends Model
     {
         return $this->hasMany(InternshipAssignment::class);
     }
+
+    /**
+     * Get partnered companies (via pivot)
+     */
+    public function partneredCompanies()
+    {
+        return $this->belongsToMany(
+            Company::class,
+            'school_company_partnerships',
+            'school_id',
+            'company_id'
+        )
+        ->withPivot('status', 'partnered_at')
+        ->withTimestamps();
+    }
+
+    /**
+     * Get active partnerships
+     */
+    public function activePartnerships()
+    {
+        return $this->hasMany(SchoolCompanyPartnership::class)
+            ->where('status', 'active');
+    }
 }
 

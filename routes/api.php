@@ -7,13 +7,20 @@ use App\Http\Controllers\Api\School\StudentController;
 use App\Http\Controllers\Api\School\TeacherController;
 use App\Http\Controllers\Api\School\InternshipAssignmentController;
 use App\Http\Controllers\Api\School\CompanyController;
+use App\Http\Controllers\Api\School\CompanyPartnershipController;
 use App\Http\Controllers\Api\School\DashboardController as SchoolDashboardController;
 use App\Http\Controllers\Api\Student\DailyReportController;
 use App\Http\Controllers\Api\Student\InternshipApplicationController;
 use App\Http\Controllers\Api\Student\AssignmentController as StudentAssignmentController;
+use App\Http\Controllers\Api\Student\AttendanceController;
+use App\Http\Controllers\Api\Student\PermissionController as StudentPermissionController;
+use App\Http\Controllers\Api\Student\DashboardController;
+use App\Http\Controllers\Api\Student\JobVacancyController;
 use App\Http\Controllers\Api\Company\InternshipPositionController;
 use App\Http\Controllers\Api\Company\ApplicationController as CompanyApplicationController;
 use App\Http\Controllers\Api\Teacher\SupervisionController;
+use App\Http\Controllers\Api\Teacher\AttendanceVerificationController;
+use App\Http\Controllers\Api\Teacher\PermissionController as TeacherPermissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +32,8 @@ use App\Http\Controllers\Api\Teacher\SupervisionController;
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']); // For initial setup only
+    Route::post('/register-school', [AuthController::class, 'registerSchool']);
+    Route::post('/register-school-admin', [AuthController::class, 'registerSchoolAdmin']);
 });
 
 // Protected routes
@@ -35,14 +44,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
-    });
-
-    // ========================================
-    // SUPER ADMIN ROUTES
-    // ========================================
-    Route::middleware('role:super_admin')->prefix('super-admin')->group(function () {
-        Route::get('statistics', [SuperAdminSchoolController::class, 'statistics']);
-        Route::apiResource('schools', SuperAdminSchoolController::class);
     });
 
     // ========================================
@@ -62,6 +63,14 @@ Route::middleware('auth:sanctum')->group(function () {
         // Companies Management
         Route::apiResource('companies', CompanyController::class);
 
+        // Company Partnership (School Admin only)
+        Route::middleware('role:school_admin')->group(function () {
+            Route::get('available-companies', [CompanyPartnershipController::class, 'available']);
+            Route::post('companies/{id}/partner', [CompanyPartnershipController::class, 'partner']);
+            Route::delete('companies/{id}/unpartner', [CompanyPartnershipController::class, 'unpartner']);
+            Route::get('partnered-companies', [CompanyPartnershipController::class, 'partnered']);
+        });
+
         // Internship Assignments
         Route::get('assignments/statistics', [InternshipAssignmentController::class, 'statistics']);
         Route::apiResource('assignments', InternshipAssignmentController::class);
@@ -73,12 +82,29 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Internship Applications (for viewing by school)
         Route::get('applications', [InternshipApplicationController::class, 'indexForSchool']);
+
+        // Teacher - Attendance Verification
+        Route::middleware('role:teacher,school_admin')->prefix('teacher')->group(function () {
+            Route::get('attendances/pending', [AttendanceVerificationController::class, 'pending']);
+            Route::post('attendances/{id}/approve', [AttendanceVerificationController::class, 'approve']);
+            Route::post('attendances/{id}/reject', [AttendanceVerificationController::class, 'reject']);
+        });
+
+        // Teacher - Permission Review
+        Route::middleware('role:teacher,school_admin')->prefix('teacher')->group(function () {
+            Route::get('permissions/pending', [TeacherPermissionController::class, 'pending']);
+            Route::post('permissions/{id}/approve', [TeacherPermissionController::class, 'approve']);
+            Route::post('permissions/{id}/reject', [TeacherPermissionController::class, 'reject']);
+        });
     });
 
     // ========================================
     // STUDENT ROUTES
     // ========================================
     Route::middleware('role:student')->prefix('student')->group(function () {
+
+        // Dashboard
+        Route::get('dashboard', [DashboardController::class, 'index']);
 
         // My Assignment
         Route::get('my-assignment', [StudentAssignmentController::class, 'myAssignment']);
@@ -97,6 +123,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('companies/{id}', [CompanyController::class, 'show']);
         Route::get('positions', [InternshipPositionController::class, 'browse']);
         Route::get('positions/{id}', [InternshipPositionController::class, 'show']);
+
+        // Attendance
+        Route::get('attendance/today', [AttendanceController::class, 'today']);
+        Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn']);
+        Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut']);
+        Route::get('attendance/history', [AttendanceController::class, 'history']);
+        Route::get('attendance/statistics', [AttendanceController::class, 'statistics']);
+
+        // Permission
+        Route::get('permissions', [StudentPermissionController::class, 'index']);
+        Route::post('permissions', [StudentPermissionController::class, 'store']);
+        Route::get('permissions/{id}', [StudentPermissionController::class, 'show']);
+
+        // Job Vacancies (untuk yang belum PKL / inactive students)
+        Route::get('job-vacancies', [JobVacancyController::class, 'index']);
+        Route::get('job-vacancies/{id}', [JobVacancyController::class, 'show']);
     });
 
     // ========================================

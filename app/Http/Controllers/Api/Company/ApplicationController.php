@@ -8,9 +8,18 @@ use App\Models\InternshipAssignment;
 use App\Models\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Enums\ApplicationStatus;
+use App\Services\ApplicationService;
 
 class ApplicationController extends Controller
 {
+    protected $service;
+
+    public function __construct(ApplicationService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Get company_id from authenticated user
      */
@@ -83,45 +92,25 @@ class ApplicationController extends Controller
     {
         $companyId = $this->getCompanyId($request);
 
-        if (!$companyId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Company profile not found'
-            ], 404);
-        }
-
         $application = InternshipApplication::where('company_id', $companyId)
             ->where('id', $id)
             ->with('position')
             ->firstOrFail();
 
-        // Check if already approved
-        if ($application->status === 'approved_company') {
+        try {
+            $this->service->approveByCompany($application);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved & internship started'
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application already approved'
+                'message' => $e->getMessage()
             ], 422);
         }
-
-        // Check quota
-        $acceptedCount = InternshipApplication::where('position_id', $application->position_id)
-            ->where('status', 'approved_company')
-            ->count();
-
-        if ($acceptedCount >= $application->position->quota) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Position quota has been reached'
-            ], 422);
-        }
-
-        $application->update(['status' => 'approved_company']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Application approved successfully',
-            'data' => $application
-        ]);
     }
 
     /**
@@ -143,14 +132,14 @@ class ApplicationController extends Controller
             ->firstOrFail();
 
         // Check if already processed
-        if (in_array($application->status, ['approved_company', 'rejected_company'])) {
+        if (in_array($application->status, [ApplicationStatus::APPROVED_COMPANY, ApplicationStatus::REJECTED_COMPANY])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Application has already been processed'
             ], 422);
         }
 
-        $application->update(['status' => 'rejected_company']);
+        $application->update(['status' => ApplicationStatus::REJECTED_COMPANY]);
 
         return response()->json([
             'success' => true,
@@ -279,11 +268,11 @@ class ApplicationController extends Controller
                 ->where('status', 'open')->count(),
             'total_applications' => InternshipApplication::where('company_id', $companyId)->count(),
             'pending_applications' => InternshipApplication::where('company_id', $companyId)
-                ->whereIn('status', ['submitted', 'approved_school'])->count(),
+                ->whereIn('status', [ApplicationStatus::SUBMITTED, ApplicationStatus::APPROVED_SCHOOL])->count(),
             'approved_applications' => InternshipApplication::where('company_id', $companyId)
-                ->where('status', 'approved_company')->count(),
+                ->where('status', ApplicationStatus::APPROVED_COMPANY)->count(),
             'rejected_applications' => InternshipApplication::where('company_id', $companyId)
-                ->where('status', 'rejected_company')->count(),
+                ->where('status', ApplicationStatus::REJECTED_COMPANY)->count(),
             'current_interns' => InternshipAssignment::where('company_id', $companyId)
                 ->where('status', 'active')->count(),
             'completed_interns' => InternshipAssignment::where('company_id', $companyId)
