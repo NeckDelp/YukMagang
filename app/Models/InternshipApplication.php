@@ -70,4 +70,14 @@ class InternshipApplication extends Model
     {
         return $this->belongsTo(InternshipPosition::class, 'position_id');
     }
+
+    public function approvedBySchool()
+    {
+        return $this->belongsTo(User::class, 'approved_by_school');
+    }
+
+    public function approvedByCompany()
+    {
+        return $this->belongsTo(User::class, 'approved_by_company');
+    }
 }

@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\SuperAdmin\SchoolController as SuperAdminSchoolController;
 use App\Http\Controllers\Api\School\StudentController;
 use App\Http\Controllers\Api\School\TeacherController;
 use App\Http\Controllers\Api\School\InternshipAssignmentController;
@@ -13,6 +12,7 @@ use App\Http\Controllers\Api\Student\InternshipApplicationController;
 use App\Http\Controllers\Api\Student\AssignmentController as StudentAssignmentController;
 use App\Http\Controllers\Api\Company\InternshipPositionController;
 use App\Http\Controllers\Api\Company\ApplicationController as CompanyApplicationController;
+use App\Http\Controllers\Api\Teacher\ApplicationApprovalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,6 +64,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Internship Applications (for viewing by school)
         Route::get('applications', [InternshipApplicationController::class, 'indexForSchool']);
+
+        Route::patch('applications/{id}/approve', [\App\Http\Controllers\Api\Teacher\ApplicationApprovalController::class, 'approve']);
+        Route::patch('applications/{id}/reject', [\App\Http\Controllers\Api\Teacher\ApplicationApprovalController::class, 'reject']);
+
+        Route::post('bulk-approve', [ApplicationApprovalController::class, 'bulkApprove']);
     });
 
     // ========================================

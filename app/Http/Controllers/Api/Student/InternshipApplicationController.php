@@ -56,8 +56,6 @@ class InternshipApplicationController extends Controller
 
         $validator = Validator::make($request->all(), [
             'position_id' => 'required|exists:internship_positions,id',
-            'cv_file' => 'required|file|mimes:pdf,doc,docx|max:5120', // 5MB
-            'cover_letter' => 'nullable|string|max:2000',
         ]);
 
         if ($validator->fails()) {
@@ -133,7 +131,6 @@ class InternshipApplicationController extends Controller
             'school_id' => $student->school_id,
             'company_id' => $position->company_id,
             'position_id' => $request->position_id,
-            'cover_letter' => $request->cover_letter,
             'status' => ApplicationStatus::SUBMITTED,
             'applied_at' => now(),
         ]);
@@ -198,11 +195,6 @@ class InternshipApplicationController extends Controller
             ], 422);
         }
 
-        // Delete CV file if exists
-        if ($application->cv_file) {
-            Storage::disk('public')->delete($application->cv_file);
-        }
-
         $application->delete();
 
         return response()->json([
@@ -216,7 +208,7 @@ class InternshipApplicationController extends Controller
      */
     public function indexForSchool(Request $request)
     {
-        $schoolId = $request->user()->school_id;
+        $schoolId = $request->_school_id;
 
         $applications = InternshipApplication::where('school_id', $schoolId)
             ->with(['student.user', 'company', 'position'])
