@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 class ApplicationService
 {
     /**
-     * Approve by company (FINAL STEP)
+     * Approve by company
      */
     public function approveByCompany(InternshipApplication $application, $user)
     {
@@ -59,9 +59,29 @@ class ApplicationService
     }
 
     /**
+     * Reject by company
+     */
+    public function rejectByCompany(InternshipApplication $application, $user)
+    {
+        if (in_array($application->status, [
+            ApplicationStatus::APPROVED_COMPANY,
+            ApplicationStatus::REJECTED_COMPANY
+        ])) {
+            throw new \Exception('Application already processed');
+        }
+
+        $application->update([
+            'status' => ApplicationStatus::REJECTED_COMPANY,
+            'company_decided_by' => $user->id,
+        ]);
+
+        return $application->fresh();
+    }
+
+    /**
      * Approve by school (teacher)
      */
-    public function approveBySchool(InternshipApplication $application, $userId, $notes = null)
+    public function approveBySchool(InternshipApplication $application, $user)
     {
         if ($application->status !== ApplicationStatus::SUBMITTED) {
             throw new \Exception('Application already processed');
@@ -69,10 +89,26 @@ class ApplicationService
 
         $application->update([
             'status' => ApplicationStatus::APPROVED_SCHOOL,
-            'school_decided_by' => $userId,
-            'school_notes' => $notes ?? 'Approved by school',
+            'school_decided_by' => $user->id,
         ]);
 
-        return $application;
+        return $application->fresh();
+    }
+
+    /**
+     * Reject by school (teacher)
+     */
+    public function rejectBySchool(InternshipApplication $application, $user)
+    {
+        if ($application->status !== ApplicationStatus::SUBMITTED) {
+            throw new \Exception('Application already processed');
+        }
+
+        $application->update([
+            'status' => ApplicationStatus::REJECTED_SCHOOL,
+            'school_decided_by' => $user->id,
+        ]);
+
+        return $application->fresh();
     }
 }

@@ -8,6 +8,7 @@ use App\Models\TeacherCompanySupervision;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Enums\ApplicationStatus;
+use App\Services\ApplicationService;
 
 class ApplicationApprovalController extends Controller
 {
@@ -106,6 +107,13 @@ class ApplicationApprovalController extends Controller
         ]);
     }
 
+    protected $service;
+
+    public function __construct(ApplicationService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Approve application (Teacher - Stage 1)
      * submitted → approved_school
@@ -135,10 +143,25 @@ class ApplicationApprovalController extends Controller
             ], 422);
         }
 
-        $application->update([
-            'status' => ApplicationStatus::APPROVED_SCHOOL,
-            'school_decided_by' => $request->user()->id,
-        ]);
+        try {
+            $application = $this->service->approveBySchool($application, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved. Waiting for company approval.',
+                'data' => $application->load([
+                    'student.user',
+                    'position.company',
+                    'schoolDecisionBy'
+                ])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
@@ -184,10 +207,25 @@ class ApplicationApprovalController extends Controller
             ], 422);
         }
 
-        $application->update([
-            'status' => ApplicationStatus::REJECTED_SCHOOL,
-            'school_decided_by' => $request->user()->id,
-        ]);
+        try {
+            $application = $this->service->rejectBySchool($application, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected',
+                'data' => $application->load([
+                    'student.user',
+                    'position.company',
+                    'schoolDecisionBy'
+                ])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
