@@ -37,11 +37,12 @@ class ApplicationService
             // CREATE ASSIGNMENT
             InternshipAssignment::create([
                 'student_id' => $application->student_id,
-                'company_id' => $application->company_id,
-                'position_id' => $application->position_id,
                 'school_id' => $application->school_id,
+                'company_id' => $application->company_id,
+                'supervisor_teacher_id' => null, // atau isi kalau ada
+                'start_date' => $application->position->start_date,
+                'end_date' => $application->position->end_date,
                 'status' => 'active',
-                'started_at' => now(),
             ]);
 
             return $application;
