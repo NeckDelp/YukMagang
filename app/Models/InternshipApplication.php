@@ -24,8 +24,8 @@ class InternshipApplication extends Model
         'position_id',
         'status',
         'applied_at',
-        'approved_by_school',
-        'approved_by_company',
+        'school_decided_by',
+        'company_decided_by',
     ];
 
     /**
@@ -73,13 +73,13 @@ class InternshipApplication extends Model
         return $this->belongsTo(InternshipPosition::class, 'position_id');
     }
 
-    public function approvedBySchool()
+    public function schoolDecisionBy()
     {
-        return $this->belongsTo(User::class, 'approved_by_school');
+        return $this->belongsTo(User::class, 'school_decided_by');
     }
 
-    public function approvedByCompany()
+    public function companyDecisionBy()
     {
-        return $this->belongsTo(User::class, 'approved_by_company');
+        return $this->belongsTo(User::class, 'company_decided_by');
     }
 }

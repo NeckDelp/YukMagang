@@ -12,9 +12,9 @@ class ApplicationService
     /**
      * Approve by company (FINAL STEP)
      */
-    public function approveByCompany(InternshipApplication $application)
+    public function approveByCompany(InternshipApplication $application, $user)
     {
-        return DB::transaction(function () use ($application) {
+        return DB::transaction(function () use ($application, $user) {
 
             if ($application->status !== ApplicationStatus::APPROVED_SCHOOL) {
                 throw new \Exception('Application must be approved by school first');
@@ -32,7 +32,16 @@ class ApplicationService
             // Update status
             $application->update([
                 'status' => ApplicationStatus::APPROVED_COMPANY,
+                'company_decided_by' => $user->id,
             ]);
+
+            $exists = InternshipAssignment::where('student_id', $application->student_id)
+                ->where('status', 'active')
+                ->exists();
+
+            if ($exists) {
+                throw new \Exception('Student already has active internship');
+            }
 
             // CREATE ASSIGNMENT
             InternshipAssignment::create([
@@ -45,15 +54,7 @@ class ApplicationService
                 'status' => 'active',
             ]);
 
-            return $application;
-
-            $exists = InternshipAssignment::where('student_id', $application->student_id)
-                ->where('status', 'active')
-                ->exists();
-
-            if ($exists) {
-                throw new \Exception('Student already has active internship');
-            }
+            return $application->fresh();
         });
     }
 
@@ -68,8 +69,7 @@ class ApplicationService
 
         $application->update([
             'status' => ApplicationStatus::APPROVED_SCHOOL,
-            'approved_by_school' => $userId,
-            'approved_school_at' => now(),
+            'school_decided_by' => $userId,
             'school_notes' => $notes ?? 'Approved by school',
         ]);
 

@@ -98,7 +98,7 @@ class ApplicationController extends Controller
             ->firstOrFail();
 
         try {
-            $this->service->approveByCompany($application);
+            $this->service->approveByCompany($application, $request->user());
 
             return response()->json([
                 'success' => true,
@@ -139,7 +139,10 @@ class ApplicationController extends Controller
             ], 422);
         }
 
-        $application->update(['status' => ApplicationStatus::REJECTED_COMPANY]);
+        $application->update([
+            'status' => ApplicationStatus::REJECTED_COMPANY,
+            'company_decided_by' => $request->user()->id // reuse field
+        ]);
 
         return response()->json([
             'success' => true,
