@@ -17,6 +17,8 @@ return new class extends Migration
         $table->foreignId('school_id')->constrained()->cascadeOnDelete();
         $table->foreignId('company_id')->constrained()->cascadeOnDelete();
         $table->foreignId('position_id')->constrained('internship_positions')->cascadeOnDelete();
+        $table->foreignId('approved_by_school')->nullable()->constrained('users')->nullOnDelete();
+        $table->foreignId('approved_by_company')->nullable()->constrained('users')->nullOnDelete();
         $table->enum('status', [
             'submitted',
             'approved_school',

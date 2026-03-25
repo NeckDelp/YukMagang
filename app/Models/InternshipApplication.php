@@ -24,6 +24,8 @@ class InternshipApplication extends Model
         'position_id',
         'status',
         'applied_at',
+        'approved_by_school',
+        'approved_by_company',
     ];
 
     /**
