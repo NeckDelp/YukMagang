@@ -97,12 +97,22 @@ class ApplicationController extends Controller
             ->with('position')
             ->firstOrFail();
 
+        $request->validate([
+            'company_supervisor_name' => 'required|string|max:255',
+            'company_notes' => 'nullable|string|max:1000',
+        ]);
+
         try {
-            $this->service->approveByCompany($application, $request->user());
+            $this->service->approveByCompany(
+                $application,
+                $request->company_supervisor_name,
+                $request->company_notes,
+                $request->user()->id
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application approved & internship started'
+                'message' => 'Application approved. Internship assignment created.'
             ]);
 
         } catch (\Exception $e) {

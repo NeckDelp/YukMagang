@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\DB;
 class ApplicationService
 {
     /**
-     * Approve by company
+     * Approve by company (FINAL STEP)
      */
-    public function approveByCompany(InternshipApplication $application, $user)
+    public function approveByCompany(InternshipApplication $application, string $companySupervisorName, ?string $companyNotes = null, ?int $companyDecidedBy = null)
     {
-        return DB::transaction(function () use ($application, $user) {
+        return DB::transaction(function () use ($application, $companySupervisorName, $companyNotes, $companyDecidedBy) {
 
             if ($application->status !== ApplicationStatus::APPROVED_SCHOOL) {
-                throw new \Exception('Application must be approved by school first');
+                throw new \Exception('Application must be approved by school first. Current status: ' . $application->status);
             }
 
             // Check quota
@@ -26,32 +26,28 @@ class ApplicationService
                 ->count();
 
             if ($acceptedCount >= $application->position->quota) {
-                throw new \Exception('Quota full');
+                throw new \Exception('Quota for this position is full');
             }
 
-            // Update status
+            // Update application with company supervisor info
             $application->update([
                 'status' => ApplicationStatus::APPROVED_COMPANY,
-                'company_decided_by' => $user->id,
+                'company_supervisor_name' => $companySupervisorName,
+                'company_notes' => $companyNotes,
+                'company_decided_by' => $companyDecidedBy,
+                'approved_company_at' => now(),
             ]);
 
-            $exists = InternshipAssignment::where('student_id', $application->student_id)
-                ->where('status', 'active')
-                ->exists();
-
-            if ($exists) {
-                throw new \Exception('Student already has active internship');
-            }
-
-            // CREATE ASSIGNMENT
+            // Create internship assignment (supervisor_teacher_id is null until school assigns one)
             InternshipAssignment::create([
-                'student_id' => $application->student_id,
-                'school_id' => $application->school_id,
-                'company_id' => $application->company_id,
-                'supervisor_teacher_id' => null, // atau isi kalau ada
-                'start_date' => $application->position->start_date,
-                'end_date' => $application->position->end_date,
-                'status' => 'active',
+                'student_id'          => $application->student_id,
+                'school_id'           => $application->school_id,
+                'company_id'          => $application->company_id,
+                'position_id'         => $application->position_id,
+                'supervisor_teacher_id' => null,
+                'start_date'          => $application->position->start_date ?? now()->toDateString(),
+                'end_date'            => $application->position->end_date ?? now()->addMonths(3)->toDateString(),
+                'status'              => 'active',
             ]);
 
             return $application->fresh();

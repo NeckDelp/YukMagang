@@ -22,10 +22,18 @@ class InternshipApplication extends Model
         'school_id',
         'company_id',
         'position_id',
+        'cv_file',
+        'cover_letter',
+        'company_supervisor_name',
         'status',
         'applied_at',
         'school_decided_by',
         'company_decided_by',
+        'approved_school_at',
+        'approved_company_at',
+        'school_notes',
+        'company_notes',
+        'rejected_at',
     ];
 
     /**
@@ -73,13 +81,19 @@ class InternshipApplication extends Model
         return $this->belongsTo(InternshipPosition::class, 'position_id');
     }
 
-    public function schoolDecisionBy()
+    /**
+     * School admin/teacher who decided on this application.
+     */
+    public function schoolDecisionBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'school_decided_by');
+        return $this->belongsTo(\App\Models\User::class, 'school_decided_by');
     }
 
-    public function companyDecisionBy()
+    /**
+     * Company user who decided on this application.
+     */
+    public function companyDecisionBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'company_decided_by');
+        return $this->belongsTo(\App\Models\User::class, 'company_decided_by');
     }
 }

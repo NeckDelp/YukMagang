@@ -339,4 +339,30 @@ class InternshipAssignmentController extends Controller
             ]
         ]);
     }
+    /**
+     * Assign or update supervisor teacher on an existing assignment
+     * Called by school admin after company has approved the application
+     */
+    public function assignTeacher(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'supervisor_teacher_id' => 'required|exists:teachers,id',
+        ]);
+
+        $schoolId = $request->user()->school_id;
+
+        $assignment = InternshipAssignment::where('id', $id)
+            ->where('school_id', $schoolId)
+            ->firstOrFail();
+
+        $assignment->update([
+            'supervisor_teacher_id' => $validated['supervisor_teacher_id'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher supervisor assigned successfully',
+            'data' => $assignment->load(['student.user', 'supervisorTeacher.user', 'company'])
+        ]);
+    }
 }

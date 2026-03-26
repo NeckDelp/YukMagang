@@ -14,7 +14,6 @@ class TeacherSeeder extends Seeder
      */
     public function run(): void
     {
-<<<<<<< HEAD
         $schools = School::all();
         $positions = [
             'Guru Mata Pelajaran',
@@ -36,6 +35,24 @@ class TeacherSeeder extends Seeder
             'Pemrograman',
         ];
 
+        // Ensure the default test teacher is seeded correctly
+        $teacherUser = User::where('email', 'teacher@test.com')->first();
+        $school = School::first(); // atau create dulu kalau belum ada
+        
+        if ($teacherUser && $school) {
+            Teacher::firstOrCreate(
+                ['user_id' => $teacherUser->id],
+                [
+                    'user_id' => $teacherUser->id,
+                    'school_id' => $school->id,
+                    'nip' => $school->npsn . str_pad($teacherUser->id, 6, '0', STR_PAD_LEFT),
+                    'position' => $positions[0] . ' - ' . $expertiseMajors[0],
+                    'expertise_majors' => [$expertiseMajors[0]],
+                ]
+            );
+        }
+
+        // Seed additional teachers from the users table that have a school_id
         foreach ($schools as $school) {
             $teachers = User::where('school_id', $school->id)
                 ->where('role', 'teacher')
@@ -56,15 +73,6 @@ class TeacherSeeder extends Seeder
         }
 
         $this->command->info('Teachers seeded successfully!');
-=======
-        $teacherUser = User::where('email', 'teacher@test.com')->first();
-        $school = School::first(); // atau create dulu kalau belum ada
-
-        Teacher::create([
-            'user_id' => $teacherUser->id,
-            'school_id' => $school->id,
-        ]);
->>>>>>> 5945c3a765152f9459092be335a04fa786fa9d2a
     }
 }
 

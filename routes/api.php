@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\School\InternshipAssignmentController;
 use App\Http\Controllers\Api\School\CompanyController;
 use App\Http\Controllers\Api\School\DashboardController as SchoolDashboardController;
 use App\Http\Controllers\Api\Student\DailyReportController;
+use App\Http\Controllers\Api\Student\DashboardController as StudentDashboardController;
 use App\Http\Controllers\Api\Student\InternshipApplicationController;
 use App\Http\Controllers\Api\Student\AssignmentController as StudentAssignmentController;
 use App\Http\Controllers\Api\Company\InternshipPositionController;
@@ -64,17 +65,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Internship Applications (for viewing by school)
         Route::get('applications', [InternshipApplicationController::class, 'indexForSchool']);
+        Route::get('applications/{id}', [InternshipApplicationController::class, 'showForSchool']);
 
         Route::patch('applications/{id}/approve', [\App\Http\Controllers\Api\Teacher\ApplicationApprovalController::class, 'approve']);
         Route::patch('applications/{id}/reject', [\App\Http\Controllers\Api\Teacher\ApplicationApprovalController::class, 'reject']);
 
         Route::post('bulk-approve', [ApplicationApprovalController::class, 'bulkApprove']);
+
+        // Admin creates assignment with teacher after company approval
+        Route::post('assignments/from-application', [InternshipAssignmentController::class, 'createFromApplication']);
+        Route::patch('assignments/{id}/assign-teacher', [InternshipAssignmentController::class, 'assignTeacher']);
     });
 
     // ========================================
     // STUDENT ROUTES
     // ========================================
     Route::middleware('role:student')->prefix('student')->group(function () {
+
+        // Dashboard
+        Route::get('dashboard', [StudentDashboardController::class, 'index']);
 
         // My Assignment
         Route::get('my-assignment', [StudentAssignmentController::class, 'myAssignment']);

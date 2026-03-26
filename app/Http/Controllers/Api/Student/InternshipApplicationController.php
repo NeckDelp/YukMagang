@@ -80,19 +80,6 @@ class InternshipApplicationController extends Controller
 
         $position = InternshipPosition::findOrFail($request->position_id);
 
-        // Verify position is from partnered company
-        $isPartnered = SchoolCompanyPartnership::where('school_id', $student->school_id)
-            ->where('company_id', $position->company_id)
-            ->where('status', 'active')
-            ->exists();
-
-        if (!$isPartnered) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This position is not available for your school'
-            ], 403);
-        }
-
         // Check if position is still open
         if ($position->status !== 'open') {
             return response()->json([
@@ -126,13 +113,21 @@ class InternshipApplicationController extends Controller
             ], 422);
         }
 
+        // Handle CV file upload
+        $cvPath = null;
+        if ($request->hasFile('cv_file')) {
+            $cvPath = $request->file('cv_file')->store('cvs', 'public');
+        }
+
         $application = InternshipApplication::create([
-            'student_id' => $student->id,
-            'school_id' => $student->school_id,
-            'company_id' => $position->company_id,
-            'position_id' => $request->position_id,
-            'status' => ApplicationStatus::SUBMITTED,
-            'applied_at' => now(),
+            'student_id'   => $student->id,
+            'school_id'    => $student->school_id,
+            'company_id'   => $position->company_id,
+            'position_id'  => $request->position_id,
+            'cv_file'      => $cvPath,
+            'cover_letter' => $request->cover_letter,
+            'status'       => ApplicationStatus::SUBMITTED,
+            'applied_at'   => now(),
         ]);
 
         $application->load(['company', 'position', 'school']);
@@ -140,7 +135,7 @@ class InternshipApplicationController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Application submitted successfully',
-            'data' => $application
+            'data'    => $application
         ], 201);
     }
 
@@ -208,7 +203,7 @@ class InternshipApplicationController extends Controller
      */
     public function indexForSchool(Request $request)
     {
-        $schoolId = $request->_school_id;
+        $schoolId = $request->user()->school_id;
 
         $applications = InternshipApplication::where('school_id', $schoolId)
             ->with(['student.user', 'company', 'position'])
@@ -221,6 +216,30 @@ class InternshipApplicationController extends Controller
         return response()->json([
             'success' => true,
             'data' => $applications
+        ]);
+    }
+
+    /**
+     * For school admin to see detail of one application (including CV url)
+     */
+    public function showForSchool(Request $request, $id)
+    {
+        $schoolId = $request->user()->school_id;
+
+        $application = InternshipApplication::where('school_id', $schoolId)
+            ->where('id', $id)
+            ->with(['student.user', 'company', 'position', 'schoolDecisionBy', 'companyDecisionBy'])
+            ->firstOrFail();
+
+        // Generate public URL for CV file if it exists
+        $data = $application->toArray();
+        if ($application->cv_file) {
+            $data['cv_url'] = asset('storage/' . $application->cv_file);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ]);
     }
 }
