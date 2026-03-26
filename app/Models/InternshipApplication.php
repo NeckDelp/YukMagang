@@ -24,6 +24,8 @@ class InternshipApplication extends Model
         'position_id',
         'status',
         'applied_at',
+        'school_decided_by',
+        'company_decided_by',
     ];
 
     /**
@@ -69,5 +71,15 @@ class InternshipApplication extends Model
     public function position(): BelongsTo
     {
         return $this->belongsTo(InternshipPosition::class, 'position_id');
+    }
+
+    public function schoolDecisionBy()
+    {
+        return $this->belongsTo(User::class, 'school_decided_by');
+    }
+
+    public function companyDecisionBy()
+    {
+        return $this->belongsTo(User::class, 'company_decided_by');
     }
 }

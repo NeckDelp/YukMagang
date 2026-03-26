@@ -8,6 +8,7 @@ use App\Models\TeacherCompanySupervision;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Enums\ApplicationStatus;
+use App\Services\ApplicationService;
 
 class ApplicationApprovalController extends Controller
 {
@@ -66,7 +67,7 @@ class ApplicationApprovalController extends Controller
                 'student.user',
                 'position.company',
                 'school',
-                'approvedBySchool'
+                'schoolDecisionBy',
             ])
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->when($request->student_id, fn($q, $studentId) => $q->where('student_id', $studentId))
@@ -95,8 +96,8 @@ class ApplicationApprovalController extends Controller
                 'student.user',
                 'position.company',
                 'school',
-                'approvedBySchool',
-                'approvedByCompany'
+                'schoolDecisionBy',
+                'companyDecisionBy'
             ])
             ->firstOrFail();
 
@@ -104,6 +105,13 @@ class ApplicationApprovalController extends Controller
             'success' => true,
             'data' => $application
         ]);
+    }
+
+    protected $service;
+
+    public function __construct(ApplicationService $service)
+    {
+        $this->service = $service;
     }
 
     /**
@@ -135,16 +143,25 @@ class ApplicationApprovalController extends Controller
             ], 422);
         }
 
-        $validated = $request->validate([
-            'school_notes' => 'nullable|string|max:500'
-        ]);
+        try {
+            $application = $this->service->approveBySchool($application, $request->user());
 
-        $application->update([
-            'status' => ApplicationStatus::APPROVED_SCHOOL,
-            'approved_by_school' => $request->user()->id,
-            'approved_school_at' => now(),
-            'school_notes' => $validated['school_notes'] ?? 'Disetujui oleh pembimbing sekolah',
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved. Waiting for company approval.',
+                'data' => $application->load([
+                    'student.user',
+                    'position.company',
+                    'schoolDecisionBy'
+                ])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
@@ -152,7 +169,7 @@ class ApplicationApprovalController extends Controller
             'data' => $application->fresh([
                 'student.user',
                 'position.company',
-                'approvedBySchool'
+                'schoolDecisionBy'
             ])
         ]);
     }
@@ -163,12 +180,13 @@ class ApplicationApprovalController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $validated = $request->validate([
-            'school_notes' => 'required|string|max:500'
-        ]);
-
         $teacher = $request->user()->teacher;
-        $application = InternshipApplication::findOrFail($id);
+        $companyIds = TeacherCompanySupervision::where('teacher_id', $teacher->id)
+            ->pluck('company_id');
+
+        $application = InternshipApplication::whereIn('company_id', $companyIds)
+            ->where('id', $id)
+            ->firstOrFail();
 
         // Verify supervision
         $supervises = TeacherCompanySupervision::where('teacher_id', $teacher->id)
@@ -189,12 +207,25 @@ class ApplicationApprovalController extends Controller
             ], 422);
         }
 
-        $application->update([
-            'status' => ApplicationStatus::REJECTED_SCHOOL,
-            'approved_by_school' => $request->user()->id,
-            'approved_school_at' => now(),
-            'school_notes' => $validated['school_notes'],
-        ]);
+        try {
+            $application = $this->service->rejectBySchool($application, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected',
+                'data' => $application->load([
+                    'student.user',
+                    'position.company',
+                    'schoolDecisionBy'
+                ])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
@@ -202,7 +233,7 @@ class ApplicationApprovalController extends Controller
             'data' => $application->fresh([
                 'student.user',
                 'position.company',
-                'approvedBySchool'
+                'schoolDecisionBy'
             ])
         ]);
     }
@@ -216,7 +247,6 @@ class ApplicationApprovalController extends Controller
         $validated = $request->validate([
             'application_ids' => 'required|array|min:1',
             'application_ids.*' => 'exists:internship_applications,id',
-            'school_notes' => 'nullable|string|max:500',
         ]);
 
         $teacher = $request->user()->teacher;
@@ -255,9 +285,7 @@ class ApplicationApprovalController extends Controller
 
                 $app->update([
                     'status' => ApplicationStatus::APPROVED_SCHOOL,
-                    'approved_by_school' => $request->user()->id,
-                    'approved_school_at' => now(),
-                    'school_notes' => $validated['school_notes'] ?? 'Bulk approved by teacher',
+                    'school_decided_by' => $request->user()->id,
                 ]);
 
                 $approved++;

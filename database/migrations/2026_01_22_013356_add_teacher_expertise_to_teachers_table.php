@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::table('teachers', function (Blueprint $table) {
             // JSON field untuk store multiple majors/expertise
             // Example: ["Rekayasa Perangkat Lunak", "Teknik Komputer Jaringan"]
-            $table->json('expertise_majors')->nullable()->after('position');
+            $table->json('expertise_majors')->nullable()->after('nip');
 
             // Or simple text if only one major
             // $table->string('major_expertise')->nullable()->after('position');

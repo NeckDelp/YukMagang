@@ -14,6 +14,7 @@ class TeacherSeeder extends Seeder
      */
     public function run(): void
     {
+<<<<<<< HEAD
         $schools = School::all();
         $positions = [
             'Guru Mata Pelajaran',
@@ -55,6 +56,15 @@ class TeacherSeeder extends Seeder
         }
 
         $this->command->info('Teachers seeded successfully!');
+=======
+        $teacherUser = User::where('email', 'teacher@test.com')->first();
+        $school = School::first(); // atau create dulu kalau belum ada
+
+        Teacher::create([
+            'user_id' => $teacherUser->id,
+            'school_id' => $school->id,
+        ]);
+>>>>>>> 5945c3a765152f9459092be335a04fa786fa9d2a
     }
 }
 
