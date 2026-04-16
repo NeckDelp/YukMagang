@@ -120,20 +120,35 @@ class ApplicationApprovalController extends Controller
      */
     public function approve(Request $request, $id)
     {
-        $teacher = $request->user()->teacher;
-
+        $user = $request->user();
         $application = InternshipApplication::findOrFail($id);
 
-        // Verify teacher supervises this company
-        $supervises = TeacherCompanySupervision::where('teacher_id', $teacher->id)
-            ->where('company_id', $application->company_id)
-            ->exists();
+        if ($user->role === 'teacher') {
+            $teacher = $user->teacher;
+            if (!$teacher) {
+                return response()->json(['success' => false, 'message' => 'Teacher profile not found'], 404);
+            }
+            // Verify teacher supervises this company
+            $supervises = TeacherCompanySupervision::where('teacher_id', $teacher->id)
+                ->where('company_id', $application->company_id)
+                ->exists();
 
-        if (!$supervises) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not supervise applications for this company'
-            ], 403);
+            if (!$supervises) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not supervise applications for this company'
+                ], 403);
+            }
+        } elseif ($user->role === 'school_admin') {
+            // Admin can approve applications belonging to their school
+            if ($application->school_id !== $user->school_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This application does not belong to your school'
+                ], 403);
+            }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         if ($application->status !== ApplicationStatus::SUBMITTED) {
@@ -180,24 +195,34 @@ class ApplicationApprovalController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        $teacher = $request->user()->teacher;
-        $companyIds = TeacherCompanySupervision::where('teacher_id', $teacher->id)
-            ->pluck('company_id');
+        $user = $request->user();
+        $application = InternshipApplication::findOrFail($id);
 
-        $application = InternshipApplication::whereIn('company_id', $companyIds)
-            ->where('id', $id)
-            ->firstOrFail();
+        if ($user->role === 'teacher') {
+            $teacher = $user->teacher;
+            if (!$teacher) {
+                return response()->json(['success' => false, 'message' => 'Teacher profile not found'], 404);
+            }
+            // Verify supervision
+            $supervises = TeacherCompanySupervision::where('teacher_id', $teacher->id)
+                ->where('company_id', $application->company_id)
+                ->exists();
 
-        // Verify supervision
-        $supervises = TeacherCompanySupervision::where('teacher_id', $teacher->id)
-            ->where('company_id', $application->company_id)
-            ->exists();
-
-        if (!$supervises) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not supervise applications for this company'
-            ], 403);
+            if (!$supervises) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not supervise applications for this company'
+                ], 403);
+            }
+        } elseif ($user->role === 'school_admin') {
+            if ($application->school_id !== $user->school_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This application does not belong to your school'
+                ], 403);
+            }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         if ($application->status !== ApplicationStatus::SUBMITTED) {

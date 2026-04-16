@@ -34,7 +34,7 @@ class DashboardController extends Controller
         // Get active assignment
         $assignment = $student->internshipAssignments()
             ->where('status', 'active')
-            ->with(['company', 'position', 'supervisorTeacher.user'])
+            ->with(['company', 'supervisorTeacher.user'])
             ->first();
 
         if ($assignment) {
@@ -65,7 +65,7 @@ class DashboardController extends Controller
             'school_name' => $student->school->name,
             'company_name' => $assignment->company->name,
             'company_address' => $assignment->company->address . ', ' . $assignment->company->city,
-            'position' => $assignment->position->title ?? 'Intern',
+            'position' => $assignment->position?->title ?? 'Intern',
             'supervisor_teacher' => $assignment->supervisorTeacher
                 ? $assignment->supervisorTeacher->user->name
                 : 'Belum ditentukan',
@@ -203,14 +203,14 @@ class DashboardController extends Controller
         // 2. PAST PKL SUMMARY
         $pastAssignments = InternshipAssignment::where('student_id', $student->id)
             ->where('status', 'completed')
-            ->with(['company', 'position'])
+            ->with(['company'])
             ->orderBy('end_date', 'desc')
             ->get()
             ->map(function($assignment) {
                 return [
                     'id' => $assignment->id,
                     'company' => $assignment->company->name,
-                    'position' => $assignment->position->title ?? 'Intern',
+                    'position' => $assignment->position?->title ?? 'Intern',
                     'start_date' => $assignment->start_date,
                     'end_date' => $assignment->end_date,
                     'duration_days' => Carbon::parse($assignment->start_date)

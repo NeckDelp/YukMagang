@@ -14,6 +14,44 @@ use Illuminate\Support\Facades\DB;
 class InternshipAssignmentController extends Controller
 {
     /**
+     * Display a listing of assignments for the school
+     */
+    public function index(Request $request)
+    {
+        $schoolId = $request->user()->school_id;
+        
+        $assignments = InternshipAssignment::where('school_id', $schoolId)
+            ->when($request->user()->role === 'teacher', function($q) use ($request) {
+                // If user is a teacher, limit assignments to those they supervise
+                $teacherId = $request->user()->teacher->id;
+                return $q->where('supervisor_teacher_id', $teacherId);
+            })
+            ->when($request->student_id, function($q, $studentId) {
+                $q->where('student_id', $studentId);
+            })
+            ->when($request->status, function($q, $status) {
+                $q->where('status', $status);
+            })
+            ->when($request->search, function($q, $search) {
+                $q->whereHas('student.user', function($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                })->orWhereHas('student', function($query) use ($search) {
+                    $query->where('nis', 'like', "%{$search}%");
+                })->orWhereHas('company', function($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                });
+            })
+            ->with(['student.user', 'company', 'supervisorTeacher.user', 'companySupervisor'])
+            ->latest()
+            ->paginate($request->per_page ?? 15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignments
+        ]);
+    }
+
+    /**
      * Get students for bulk apply
      * Menampilkan format: [Nama] - [Kelas]
      */
@@ -363,6 +401,42 @@ class InternshipAssignmentController extends Controller
             'success' => true,
             'message' => 'Teacher supervisor assigned successfully',
             'data' => $assignment->load(['student.user', 'supervisorTeacher.user', 'company'])
+        ]);
+    }
+
+    /**
+     * Assign or update company supervisor (mentor) on an existing assignment
+     * Called by school admin to manage/override company supervisor
+     */
+    public function assignMentor(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'company_supervisor_id' => 'required|exists:company_supervisors,id',
+        ]);
+
+        $schoolId = $request->user()->school_id;
+
+        $assignment = InternshipAssignment::where('id', $id)
+            ->where('school_id', $schoolId)
+            ->firstOrFail();
+
+        // Verify that the supervisor belongs to the same company as the assignment
+        $supervisor = \App\Models\CompanySupervisor::findOrFail($validated['company_supervisor_id']);
+        if ($supervisor->company_id !== $assignment->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The selected mentor does not belong to the correct company'
+            ], 422);
+        }
+
+        $assignment->update([
+            'company_supervisor_id' => $validated['company_supervisor_id'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Company mentor assigned successfully',
+            'data' => $assignment->load(['student.user', 'companySupervisor', 'company'])
         ]);
     }
 }

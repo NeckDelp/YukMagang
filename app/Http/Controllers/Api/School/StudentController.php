@@ -130,18 +130,23 @@ class StudentController extends Controller
             'major' => 'sometimes|string|max:255',
             'year' => 'sometimes|integer|min:2000|max:2100',
             'is_active' => 'sometimes|boolean',
+            'password' => 'nullable|string|min:8',
         ]);
 
         DB::beginTransaction();
         try {
             // Update user data
-            if (isset($validated['name']) || isset($validated['email']) || isset($validated['phone']) || isset($validated['is_active'])) {
-                $student->user->update([
-                    'name' => $validated['name'] ?? $student->user->name,
-                    'email' => $validated['email'] ?? $student->user->email,
-                    'phone' => $validated['phone'] ?? $student->user->phone,
-                    'is_active' => $validated['is_active'] ?? $student->user->is_active,
-                ]);
+            $userData = [];
+            if (isset($validated['name'])) $userData['name'] = $validated['name'];
+            if (isset($validated['email'])) $userData['email'] = $validated['email'];
+            if (isset($validated['phone']) || array_key_exists('phone', $validated)) $userData['phone'] = $validated['phone'];
+            if (isset($validated['is_active'])) $userData['is_active'] = $validated['is_active'];
+            if (!empty($validated['password'])) {
+                $userData['password'] = Hash::make($validated['password']);
+            }
+
+            if (!empty($userData)) {
+                $student->user->update($userData);
             }
 
             // Update student profile

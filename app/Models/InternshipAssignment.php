@@ -22,6 +22,8 @@ class InternshipAssignment extends Model
         'student_id',
         'school_id',
         'company_id',
+        'position_id',
+        'company_supervisor_id',
         'supervisor_teacher_id',
         'start_date',
         'end_date',
@@ -75,6 +77,14 @@ class InternshipAssignment extends Model
     }
 
     /**
+     * Get the company supervisor (mentor) for the assignment.
+     */
+    public function companySupervisor(): BelongsTo
+    {
+        return $this->belongsTo(CompanySupervisor::class, 'company_supervisor_id');
+    }
+
+    /**
      * Get the daily reports for the assignment.
      */
     public function dailyReports(): HasMany
@@ -88,5 +98,13 @@ class InternshipAssignment extends Model
     public function assessments(): HasMany
     {
         return $this->hasMany(Assessment::class, 'assignment_id');
+    }
+
+    /**
+     * Get the position for the assignment.
+     */
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(InternshipPosition::class, 'position_id');
     }
 }

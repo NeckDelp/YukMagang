@@ -43,6 +43,7 @@ class ApplicationController extends Controller
         }
 
         $applications = InternshipApplication::where('company_id', $companyId)
+            ->whereNotIn('status', ['submitted', 'rejected_school'])
             ->with(['student.user', 'position', 'school'])
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->when($request->position_id, fn($q, $id) => $q->where('position_id', $id))
@@ -70,6 +71,7 @@ class ApplicationController extends Controller
         }
 
         $application = InternshipApplication::where('company_id', $companyId)
+            ->whereNotIn('status', ['submitted', 'rejected_school'])
             ->where('id', $id)
             ->with([
                 'student.user',
@@ -98,14 +100,14 @@ class ApplicationController extends Controller
             ->firstOrFail();
 
         $request->validate([
-            'company_supervisor_name' => 'required|string|max:255',
+            'company_supervisor_id' => 'required|exists:company_supervisors,id',
             'company_notes' => 'nullable|string|max:1000',
         ]);
 
         try {
             $this->service->approveByCompany(
                 $application,
-                $request->company_supervisor_name,
+                $request->company_supervisor_id,
                 $request->company_notes,
                 $request->user()->id
             );
@@ -290,9 +292,10 @@ class ApplicationController extends Controller
             'total_positions' => \App\Models\InternshipPosition::where('company_id', $companyId)->count(),
             'open_positions' => \App\Models\InternshipPosition::where('company_id', $companyId)
                 ->where('status', 'open')->count(),
-            'total_applications' => InternshipApplication::where('company_id', $companyId)->count(),
+            'total_applications' => InternshipApplication::where('company_id', $companyId)
+                ->whereNotIn('status', ['submitted', 'rejected_school'])->count(),
             'pending_applications' => InternshipApplication::where('company_id', $companyId)
-                ->whereIn('status', [ApplicationStatus::SUBMITTED, ApplicationStatus::APPROVED_SCHOOL])->count(),
+                ->where('status', ApplicationStatus::APPROVED_SCHOOL)->count(),
             'approved_applications' => InternshipApplication::where('company_id', $companyId)
                 ->where('status', ApplicationStatus::APPROVED_COMPANY)->count(),
             'rejected_applications' => InternshipApplication::where('company_id', $companyId)

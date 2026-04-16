@@ -21,32 +21,42 @@ class DashboardController extends Controller
         $schoolId = $request->user()->school_id;
 
         // Basic counts
+        $activeAssignments = InternshipAssignment::where('school_id', $schoolId)
+            ->where('status', 'active')->count();
+        $completedAssignments = InternshipAssignment::where('school_id', $schoolId)
+            ->where('status', 'completed')->count();
+        $totalCompanies = InternshipAssignment::where('school_id', $schoolId)
+            ->distinct('company_id')->count('company_id');
+
         $stats = [
-            'total_students' => Student::where('school_id', $schoolId)->count(),
-            'total_teachers' => Teacher::where('school_id', $schoolId)->count(),
+            'total_students'       => Student::where('school_id', $schoolId)->count(),
+            'total_teachers'       => Teacher::where('school_id', $schoolId)->count(),
+
+            // Aliases used by the frontend dashboard
+            'total_companies'      => $totalCompanies,
+            'active_internships'   => $activeAssignments,
+            'completed_internships'=> $completedAssignments,
 
             // Assignment statistics
-            'total_assignments' => InternshipAssignment::where('school_id', $schoolId)->count(),
-            'active_assignments' => InternshipAssignment::where('school_id', $schoolId)
-                ->where('status', 'active')->count(),
-            'completed_assignments' => InternshipAssignment::where('school_id', $schoolId)
-                ->where('status', 'completed')->count(),
-            'cancelled_assignments' => InternshipAssignment::where('school_id', $schoolId)
+            'total_assignments'    => InternshipAssignment::where('school_id', $schoolId)->count(),
+            'active_assignments'   => $activeAssignments,
+            'completed_assignments'=> $completedAssignments,
+            'cancelled_assignments'=> InternshipAssignment::where('school_id', $schoolId)
                 ->where('status', 'cancelled')->count(),
 
             // Application statistics
-            'total_applications' => InternshipApplication::where('school_id', $schoolId)->count(),
+            'total_applications'   => InternshipApplication::where('school_id', $schoolId)->count(),
             'pending_applications' => InternshipApplication::where('school_id', $schoolId)
                 ->where('status', 'submitted')->count(),
-            'approved_applications' => InternshipApplication::where('school_id', $schoolId)
+            'approved_applications'=> InternshipApplication::where('school_id', $schoolId)
                 ->where('status', 'approved_school')->count(),
 
             // Daily report statistics
-            'pending_reports' => DailyReport::whereHas('assignment', function ($q) use ($schoolId) {
+            'pending_reports'      => DailyReport::whereHas('assignment', function ($q) use ($schoolId) {
                 $q->where('school_id', $schoolId);
             })->where('status', 'pending')->count(),
 
-            'approved_reports' => DailyReport::whereHas('assignment', function ($q) use ($schoolId) {
+            'approved_reports'     => DailyReport::whereHas('assignment', function ($q) use ($schoolId) {
                 $q->where('school_id', $schoolId);
             })->where('status', 'approved')->count(),
         ];
@@ -104,16 +114,66 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Pending applications (need school approval)
+        $pendingApplicationsList = InternshipApplication::where('school_id', $schoolId)
+            ->with(['student.user', 'company'])
+            ->where('status', 'submitted')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Recent placements — formatted for frontend
+        $recentPlacements = $recentAssignments->map(function ($a) {
+            return [
+                'id'               => $a->id,
+                'student_name'     => $a->student?->user?->name ?? '-',
+                'student_class'    => $a->student?->class ?? '-',
+                'company_name'     => $a->company?->name ?? '-',
+                'supervisor_teacher' => $a->supervisorTeacher?->user?->name ?? '-',
+                'start_date'       => $a->start_date ?? '-',
+                'end_date'         => $a->end_date ?? '-',
+                'status'           => $a->status ?? 'active',
+            ];
+        });
+
+        // Attention items — combine pending reports and pending applications
+        $rawItems = collect();
+        foreach ($pendingReports as $r) {
+            $rawItems->push([
+                'title'       => $r->assignment?->student?->user?->name ?? 'Siswa',
+                'description' => 'Laporan harian menunggu review — ' . ($r->assignment?->company?->name ?? '-'),
+                'time'        => $r->created_at?->diffForHumans() ?? '-',
+                'type'        => 'pending_report',
+                'created_at'  => $r->created_at,
+            ]);
+        }
+        foreach ($pendingApplicationsList as $a) {
+            $rawItems->push([
+                'title'       => $a->student?->user?->name ?? 'Siswa',
+                'description' => 'Lamaran PKL perlu persetujuan — ' . ($a->company?->name ?? '-'),
+                'time'        => $a->created_at?->diffForHumans() ?? '-',
+                'type'        => 'pending_application',
+                'created_at'  => $a->created_at,
+            ]);
+        }
+        
+        $attentionItems = $rawItems->sortByDesc('created_at')->values()->map(function($item) {
+            unset($item['created_at']);
+            return $item;
+        });
+
         return response()->json([
             'success' => true,
             'data' => [
-                'statistics' => $stats,
-                'recent_assignments' => $recentAssignments,
-                'assignments_by_status' => $assignmentsByStatus,
-                'students_by_major' => $studentsByMajor,
+                'statistics'           => $stats,
+                'recent_placements'    => $recentPlacements,
+                'attention_items'      => $attentionItems,
+                'recent_assignments'   => $recentAssignments,
+                'assignments_by_status'=> $assignmentsByStatus,
+                'students_by_major'    => $studentsByMajor,
                 'assignments_by_company' => $assignmentsByCompany,
-                'monthly_trend' => $monthlyTrend,
-                'pending_reports' => $pendingReports,
+                'monthly_trend'        => $monthlyTrend,
+                'pending_reports'      => $pendingReports,
             ]
         ]);
     }

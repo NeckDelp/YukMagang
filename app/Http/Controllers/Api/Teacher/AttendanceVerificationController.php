@@ -46,6 +46,36 @@ class AttendanceVerificationController extends Controller
     }
 
     /**
+     * Get all attendances for a specific assignment
+     */
+    public function byAssignment(Request $request, $assignmentId)
+    {
+        $teacher = $request->user()->teacher;
+
+        $assignment = InternshipAssignment::where('id', $assignmentId)
+            ->where('supervisor_teacher_id', $teacher->id)
+            ->with(['student.user'])
+            ->firstOrFail();
+
+        $attendances = Attendance::where('assignment_id', $assignmentId)
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'assignment' => [
+                    'id' => $assignment->id,
+                    'start_date' => $assignment->start_date,
+                    'end_date' => $assignment->end_date,
+                    'student_name' => $assignment->student->user->name ?? '',
+                ],
+                'attendances' => $attendances
+            ]
+        ]);
+    }
+
+    /**
      * Approve attendance
      */
     public function approve(Request $request, $id)

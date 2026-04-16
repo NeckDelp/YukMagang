@@ -96,6 +96,23 @@ class CompanyController extends Controller
     }
 
     /**
+     * Get supervisors (mentors) of a specific company
+     */
+    public function supervisors($id)
+    {
+        $company = Company::findOrFail($id);
+        
+        $supervisors = \App\Models\CompanySupervisor::where('company_id', $company->id)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $supervisors
+        ]);
+    }
+
+    /**
      * Update the specified company
      */
     public function update(Request $request, $id)

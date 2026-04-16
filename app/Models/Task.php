@@ -19,6 +19,7 @@ class Task extends Model
         'expected_output',
         'deadline',
         'status',
+        'attachment_file',
     ];
 
     protected $casts = [

@@ -12,9 +12,9 @@ class ApplicationService
     /**
      * Approve by company (FINAL STEP)
      */
-    public function approveByCompany(InternshipApplication $application, string $companySupervisorName, ?string $companyNotes = null, ?int $companyDecidedBy = null)
+    public function approveByCompany(InternshipApplication $application, int $companySupervisorId, ?string $companyNotes = null, ?int $companyDecidedBy = null)
     {
-        return DB::transaction(function () use ($application, $companySupervisorName, $companyNotes, $companyDecidedBy) {
+        return DB::transaction(function () use ($application, $companySupervisorId, $companyNotes, $companyDecidedBy) {
 
             if ($application->status !== ApplicationStatus::APPROVED_SCHOOL) {
                 throw new \Exception('Application must be approved by school first. Current status: ' . $application->status);
@@ -32,7 +32,6 @@ class ApplicationService
             // Update application with company supervisor info
             $application->update([
                 'status' => ApplicationStatus::APPROVED_COMPANY,
-                'company_supervisor_name' => $companySupervisorName,
                 'company_notes' => $companyNotes,
                 'company_decided_by' => $companyDecidedBy,
                 'approved_company_at' => now(),
@@ -44,6 +43,7 @@ class ApplicationService
                 'school_id'           => $application->school_id,
                 'company_id'          => $application->company_id,
                 'position_id'         => $application->position_id,
+                'company_supervisor_id' => $companySupervisorId,
                 'supervisor_teacher_id' => null,
                 'start_date'          => $application->position->start_date ?? now()->toDateString(),
                 'end_date'            => $application->position->end_date ?? now()->addMonths(3)->toDateString(),

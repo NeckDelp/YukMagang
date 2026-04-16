@@ -214,8 +214,12 @@ class DailyReportController extends Controller
     {
         $schoolId = $request->user()->school_id;
 
-        $reports = DailyReport::whereHas('assignment', function ($query) use ($schoolId) {
+        $reports = DailyReport::whereHas('assignment', function ($query) use ($schoolId, $request) {
             $query->where('school_id', $schoolId);
+            if ($request->user()->role === 'teacher') {
+                $teacherId = $request->user()->teacher->id;
+                $query->where('supervisor_teacher_id', $teacherId);
+            }
         })
             ->with(['assignment.student.user', 'assignment.company'])
             ->when($request->status, fn($q, $status) => $q->where('status', $status))

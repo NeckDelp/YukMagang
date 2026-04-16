@@ -18,12 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'ensure.school.scope' => \App\Http\Middleware\EnsureSchoolScope::class,
         ]);
 
-        // API middleware configuration
-        // Using token-based auth (Bearer), not cookie-based SPA auth
+        // CORS - allow all origins for IP-based API
         $middleware->api(prepend: [
-            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \Illuminate\Http\Middleware\HandleCors::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
