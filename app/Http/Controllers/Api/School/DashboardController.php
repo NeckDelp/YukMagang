@@ -94,13 +94,15 @@ class DashboardController extends Controller
             ->get();
 
         // Monthly assignment trend (last 6 months)
+        $dateGroup = "to_char(created_at, 'YYYY-MM')";
+            
         $monthlyTrend = InternshipAssignment::where('school_id', $schoolId)
             ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw("$dateGroup as month"),
                 DB::raw('count(*) as count')
             )
             ->where('created_at', '>=', now()->subMonths(6))
-            ->groupBy('month')
+            ->groupBy(DB::raw($dateGroup))
             ->orderBy('month')
             ->get();
 
